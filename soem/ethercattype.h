@@ -189,6 +189,7 @@ typedef enum
 /** Ethercat data types */
 typedef enum
 {
+   ECT_UNSPECIFIED     = 0x0000,
    ECT_BOOLEAN         = 0x0001,
    ECT_INTEGER8        = 0x0002,
    ECT_INTEGER16       = 0x0003,
@@ -215,7 +216,9 @@ typedef enum
    ECT_BIT5            = 0x0034,
    ECT_BIT6            = 0x0035,
    ECT_BIT7            = 0x0036,
-   ECT_BIT8            = 0x0037
+   ECT_BIT8            = 0x0037,
+   ECT_UTYPE_START     = 0x0800,
+   ECT_UTYPE_END       = 0x0FFF
 } ec_datatype;
 
 /** Ethercat command types */
