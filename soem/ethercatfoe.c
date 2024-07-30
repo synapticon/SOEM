@@ -20,7 +20,7 @@
 #include "ethercatfoe.h"
 
 // https://github.com/OpenEtherCATsociety/SOEM/pull/623/commits/c499b93f39bf3508abf344afbea835e4af55e4d1
-#define EC_MAXFOEDATA EC_MAXMBX
+#define EC_MAXFOEDATA 512
 
 /** FOE structure.
  * Used for Read, Write, Data, Ack and Error mailbox packets.
