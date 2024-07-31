@@ -178,6 +178,36 @@ int ecx_FOEread(ecx_contextt *context, uint16 slave, char *filename, uint32 pass
                      }
                      break;
                   }
+                  else if (aFOEp->OpCode == ECT_FOE_BUSY)
+                  {
+                     // Synapticon's Solution for the Integro Issue
+                     // When installing firmware on Integro, if it was previously in OP mode, the initial FoEread calls will fail with FoE OpMode: BUSY (0x06).
+                     // Interestingly, this issue does not occur if Integro starts without firmware and is switched to the BOOT state at startup.
+                     // This code will send an ACK frame on BUSY, similar to the way IgH does. However, there are still differences. For instance,
+                     // IgH sends both LRW and FPWR, whereas SOEM only sends FPWR.
+                     // printf("ECT_FOE_BUSY: %s\n", filename);
+                     packetnumber = etohl(aFOEp->PacketNumber);
+                     worktodo = TRUE;
+                     FOEp->MbxHeader.length = htoes(0x0006);
+                     FOEp->MbxHeader.address = htoes(0x0000);
+                     FOEp->MbxHeader.priority = 0x00;
+                     /* get new mailbox count value */
+                     cnt = ec_nextmbxcnt(context->slavelist[slave].mbx_cnt);
+                     context->slavelist[slave].mbx_cnt = cnt;
+                     FOEp->MbxHeader.mbxtype = ECT_MBXT_FOE + MBX_HDR_SET_CNT(cnt); /* FoE */
+                     FOEp->OpCode = ECT_FOE_ACK;
+                     FOEp->PacketNumber = htoel(packetnumber);
+                     /* send FoE ack to slave */
+                     wkc = ecx_mbxsend(context, slave, (ec_mbxbuft *)&MbxOut, EC_TIMEOUTTXM);
+                     if (wkc <= 0)
+                     {
+                        worktodo = FALSE;
+                     }
+                     if (context->FOEhook)
+                     {
+                        context->FOEhook(slave, packetnumber, dataread);
+                     }
+                  }
                   else
                   {
                      /* unexpected mailbox received */
