@@ -168,9 +168,13 @@ int ecx_FOEread(ecx_contextt *context, uint16 slave, char *filename, uint32 pass
                   if(aFOEp->OpCode == ECT_FOE_ERROR)
                   {
                      /* FoE error */
-                     if(aFOEp->ErrorCode == 0x8001)
+                     if (aFOEp->ErrorCode == 0x8001)
                      {
                         wkc = -EC_ERR_TYPE_FOE_FILE_NOTFOUND;
+                     }
+                     else if (aFOEp->OpCode == 0x800b)
+                     {
+                        wkc = -EC_ERR_TYPE_FOE_PROGRAM_ERROR;
                      }
                      else
                      {
@@ -402,6 +406,10 @@ int ecx_FOEwrite(ecx_contextt *context, uint16 slave, char *filename, uint32 pas
                      if (aFOEp->ErrorCode == 0x8001)
                      {
                         wkc = -EC_ERR_TYPE_FOE_FILE_NOTFOUND;
+                     }
+                     else if (aFOEp->OpCode == 0x800b)
+                     {
+                        wkc = -EC_ERR_TYPE_FOE_PROGRAM_ERROR;
                      }
                      else
                      {
