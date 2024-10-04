@@ -474,7 +474,8 @@ typedef enum
    EC_ERR_TYPE_SOE_ERROR            = 8,
    EC_ERR_TYPE_MBX_ERROR            = 9,
    EC_ERR_TYPE_FOE_FILE_NOTFOUND    = 10,
-   EC_ERR_TYPE_EOE_INVALID_RX_DATA  = 11
+   EC_ERR_TYPE_EOE_INVALID_RX_DATA  = 11,
+   EC_ERR_TYPE_FOE_PROGRAM_ERROR    = 0x800b
 } ec_err_type;
 
 /** Struct to retrieve errors. */
