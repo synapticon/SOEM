@@ -167,7 +167,6 @@ int ecx_FOEread(ecx_contextt *context, uint16 slave, char *filename, uint32 pass
                {
                   if(aFOEp->OpCode == ECT_FOE_ERROR)
                   {
-                     printf("ecx_FOEread aFOEp->ErrorCode=0x%X\n", aFOEp->ErrorCode);
                      /* FoE error */
                      if (aFOEp->ErrorCode > 0)
                      {
@@ -399,7 +398,6 @@ int ecx_FOEwrite(ecx_contextt *context, uint16 slave, char *filename, uint32 pas
                   }
                   case ECT_FOE_ERROR:
                   {
-                     printf("ecx_FOEwrite aFOEp->ErrorCode=0x%X\n", aFOEp->ErrorCode);
                      /* FoE error */
                      if (aFOEp->ErrorCode > 0)
                      {
