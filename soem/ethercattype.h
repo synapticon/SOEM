@@ -475,7 +475,19 @@ typedef enum
    EC_ERR_TYPE_MBX_ERROR            = 9,
    EC_ERR_TYPE_FOE_FILE_NOTFOUND    = 10,
    EC_ERR_TYPE_EOE_INVALID_RX_DATA  = 11,
-   EC_ERR_TYPE_FOE_PROGRAM_ERROR    = 0x800b
+   // copied from somanet_software/sc_somanet_ip/module_ethercat/libsrc/foe.h
+   EC_ERR_TYPE_FOE_UNDEF            = 0x8000, ///< Not defined
+   EC_ERR_TYPE_FOE_NOTFOUND         = 0x8001, ///< not found
+   EC_ERR_TYPE_FOE_NOACCESS         = 0x8002, ///< Access denied
+   EC_ERR_TYPE_FOE_DISKFULL         = 0x8003, ///< disk full
+   EC_ERR_TYPE_FOE_ILLEGAL          = 0x8004, ///< illegal
+   EC_ERR_TYPE_FOE_NUMBER           = 0x8005, ///< packet number wrong
+   EC_ERR_TYPE_FOE_EXISTS           = 0x8006, ///< already exists
+   EC_ERR_TYPE_FOE_NOUSER           = 0x8007, ///< no user
+   EC_ERR_TYPE_FOE_BOOT             = 0x8008, ///< bootstrap only
+   EC_ERR_TYPE_FOE_NOBOOT           = 0x8009, ///< not bootstrap
+   EC_ERR_TYPE_FOE_PERM             = 0x800A, ///< no rights
+   EC_ERR_TYPE_FOE_PERR             = 0x800B, ///< program error
 } ec_err_type;
 
 /** Struct to retrieve errors. */
