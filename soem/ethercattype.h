@@ -24,6 +24,7 @@ extern "C"
 #endif
 
 #include "osal.h"
+#include "soem_config.h"
 
 /** define EC_VER1 if version 1 default context and functions are needed
  * define EC_VER2 if application uses only ecx_ functions and own context */
@@ -60,20 +61,8 @@ extern "C"
 #define EC_ECATTYPE        0x1000
 /** number of frame buffers per channel (tx, rx1 rx2) */
 #define EC_MAXBUF          16
-/** timeout value in us for tx frame to return to rx */
-#define EC_TIMEOUTRET      2000
-/** timeout value in us for safe data transfer, max. triple retry */
-#define EC_TIMEOUTRET3     (EC_TIMEOUTRET * 3)
-/** timeout value in us for return "safe" variant (f.e. wireless) */
-#define EC_TIMEOUTSAFE     20000
-/** timeout value in us for EEPROM access */
-#define EC_TIMEOUTEEP      20000
-/** timeout value in us for tx mailbox cycle */
-#define EC_TIMEOUTTXM      20000
-/** timeout value in us for rx mailbox cycle */
-#define EC_TIMEOUTRXM      700000
-/** timeout value in us for check statechange */
-#define EC_TIMEOUTSTATE    2000000
+
+
 /** size of EEPROM bitmap cache */
 #define EC_MAXEEPBITMAP    128
 /** size of EEPROM cache buffer */
