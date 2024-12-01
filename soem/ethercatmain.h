@@ -20,7 +20,7 @@ extern "C"
 /** max. entries in EtherCAT error list */
 #define EC_MAXELIST       64
 /** max. length of readable name in slavelist and Object Description List */
-#define EC_MAXNAME        40
+#define EC_MAXNAME        80
 /** max. number of slaves in array */
 #define EC_MAXSLAVE       200
 /** max. number of groups */
