@@ -73,8 +73,12 @@ extern "C"
 #define EC_TIMEOUTRET      100000
 /** timeout value in us for safe data transfer, max. triple retry */
 #define EC_TIMEOUTRET3     (EC_TIMEOUTRET * 3)
-/** timeout value in us for return "safe" variant (f.e. wireless) */
-#define EC_TIMEOUTSAFE     20000
+/** timeout value in us for return "safe" variant (f.e. wireless).
+ *
+ * Used for the broadcast read that counts the slaves on the bus, where a frame
+ * held back by the host reads as a bus that has fewer slaves on it than it does.
+ * Kept level with EC_TIMEOUTRET for that reason. */
+#define EC_TIMEOUTSAFE     100000
 /** timeout value in us for EEPROM access */
 #define EC_TIMEOUTEEP      200000
 /** timeout value in us for tx mailbox cycle */
