@@ -670,6 +670,60 @@ int ecx_TxPDO(ecx_contextt *context, uint16 slave, uint16 TxPDOnumber , int *psi
  * @param[in]  PDOassign     = PDO assign object
  * @return total bitlength of PDO assign
  */
+/** Number of extra attempts the PDO assign walk makes for each of its reads. */
+#define EC_PDOASSIGNRETRIES   3
+/** Pause in us between those attempts. */
+#define EC_PDOASSIGNRETRYDELAY 1000
+
+/** CoE SDO read for the PDO assign walk, retried on failure.
+ *
+ * The walk reads dozens of objects in a row and has no way to report a failure to
+ * its caller: it returns a bitlength, and 0 already means "no mapping defined".
+ * A read that fails therefore leaves the value being read at 0, which the walk
+ * takes for "no PDO here" and skips - dropping a whole PDO out of the process
+ * image with nothing to show for it. The master then sizes the SyncManager short,
+ * and the only party that notices is the slave, which rejects the transition to
+ * SAFE-OP with an invalid output (0x001D) or input (0x001E) configuration - naming
+ * neither the PDO nor the read that went missing.
+ *
+ * Such a read usually fails for a reason unrelated to the object being read: the
+ * mailbox held a message the slave sent unprompted (ecx_mbxreceive handles an
+ * emergency or mailbox error and reports a working counter of 0), or the frame
+ * carrying the request came back after EC_TIMEOUTRET had already elapsed. Both
+ * clear on their own, so another attempt gets the real answer.
+ *
+ * @param[in]     context  = context struct
+ * @param[in]     Slave    = Slave number
+ * @param[in]     index    = Index to read
+ * @param[in]     subindex = Subindex to read
+ * @param[in]     CA       = TRUE = complete access
+ * @param[in,out] psize    = Size in bytes of parameter buffer, returns bytes read
+ * @param[out]    p        = Pointer to parameter buffer
+ * @return Working counter of the last attempt (>0 is success)
+ */
+static int ecx_SDOreadretry(ecx_contextt *context, uint16 Slave, uint16 index,
+      uint8 subindex, boolean CA, int *psize, void *p)
+{
+   int bufsize, attempt, wkc;
+
+   bufsize = *psize;
+   wkc = 0;
+   for (attempt = 0; attempt <= EC_PDOASSIGNRETRIES; attempt++)
+   {
+      /* psize is in/out: ecx_SDOread overwrites it with the bytes actually read,
+         so the buffer size has to be restored before every attempt */
+      *psize = bufsize;
+      wkc = ecx_SDOread(context, Slave, index, subindex, CA, psize, p, EC_TIMEOUTRXM);
+      if (wkc > 0)
+      {
+         return wkc;
+      }
+      osal_usleep(EC_PDOASSIGNRETRYDELAY);
+   }
+
+   return wkc;
+}
+
 uint32 ecx_readPDOassign(ecx_contextt *context, uint16 Slave, uint16 PDOassign)
 {
    uint16 idxloop, nidx, subidxloop, rdat, idx, subidx;
@@ -680,7 +734,7 @@ uint32 ecx_readPDOassign(ecx_contextt *context, uint16 Slave, uint16 PDOassign)
 
    rdl = sizeof(rdat); rdat = 0;
    /* read PDO assign subindex 0 ( = number of PDO's) */
-   wkc = ecx_SDOread(context, Slave, PDOassign, 0x00, FALSE, &rdl, &rdat, EC_TIMEOUTRXM);
+   wkc = ecx_SDOreadretry(context, Slave, PDOassign, 0x00, FALSE, &rdl, &rdat);
    rdat = etohs(rdat);
    /* positive result from slave ? */
    if ((wkc > 0) && (rdat > 0))
@@ -693,21 +747,35 @@ uint32 ecx_readPDOassign(ecx_contextt *context, uint16 Slave, uint16 PDOassign)
       {
          rdl = sizeof(rdat); rdat = 0;
          /* read PDO assign */
-         wkc = ecx_SDOread(context, Slave, PDOassign, (uint8)idxloop, FALSE, &rdl, &rdat, EC_TIMEOUTRXM);
-         /* result is index of PDO */
+         wkc = ecx_SDOreadretry(context, Slave, PDOassign, (uint8)idxloop, FALSE, &rdl, &rdat);
+         /* result is index of PDO. A read that failed leaves it at 0, which is
+            indistinguishable from an empty assign entry, so bail out rather than
+            carry on and return a bitlength that is short by a whole PDO */
+         if (wkc <= 0)
+         {
+            return 0;
+         }
          idx = etohs(rdat);
          if (idx > 0)
          {
             rdl = sizeof(subcnt); subcnt = 0;
             /* read number of subindexes of PDO */
-            wkc = ecx_SDOread(context, Slave,idx, 0x00, FALSE, &rdl, &subcnt, EC_TIMEOUTRXM);
+            wkc = ecx_SDOreadretry(context, Slave, idx, 0x00, FALSE, &rdl, &subcnt);
+            if (wkc <= 0)
+            {
+               return 0;
+            }
             subidx = subcnt;
             /* for each subindex */
             for (subidxloop = 1; subidxloop <= subidx; subidxloop++)
             {
                rdl = sizeof(rdat2); rdat2 = 0;
                /* read SDO that is mapped in PDO */
-               wkc = ecx_SDOread(context, Slave, idx, (uint8)subidxloop, FALSE, &rdl, &rdat2, EC_TIMEOUTRXM);
+               wkc = ecx_SDOreadretry(context, Slave, idx, (uint8)subidxloop, FALSE, &rdl, &rdat2);
+               if (wkc <= 0)
+               {
+                  return 0;
+               }
                rdat2 = etohl(rdat2);
                /* extract bitlength of SDO */
                if (LO_BYTE(rdat2) < 0xff)
@@ -747,8 +815,8 @@ uint32 ecx_readPDOassignCA(ecx_contextt *context, uint16 Slave, int Thread_n,
    rdl = sizeof(ec_PDOassignt);
    context->PDOassign[Thread_n].n=0;
    /* read rxPDOassign in CA mode, all subindexes are read in one struct */
-   wkc = ecx_SDOread(context, Slave, PDOassign, 0x00, TRUE, &rdl,
-         &(context->PDOassign[Thread_n]), EC_TIMEOUTRXM);
+   wkc = ecx_SDOreadretry(context, Slave, PDOassign, 0x00, TRUE, &rdl,
+         &(context->PDOassign[Thread_n]));
    /* positive result from slave ? */
    if ((wkc > 0) && (context->PDOassign[Thread_n].n > 0))
    {
@@ -763,8 +831,14 @@ uint32 ecx_readPDOassignCA(ecx_contextt *context, uint16 Slave, int Thread_n,
          {
             rdl = sizeof(ec_PDOdesct); context->PDOdesc[Thread_n].n = 0;
             /* read SDO's that are mapped in PDO, CA mode */
-            wkc = ecx_SDOread(context, Slave,idx, 0x00, TRUE, &rdl,
-                  &(context->PDOdesc[Thread_n]), EC_TIMEOUTRXM);
+            wkc = ecx_SDOreadretry(context, Slave, idx, 0x00, TRUE, &rdl,
+                  &(context->PDOdesc[Thread_n]));
+            /* a failed read leaves n at 0, which would drop this PDO from the
+               total silently; see ecx_SDOreadretry */
+            if (wkc <= 0)
+            {
+               return 0;
+            }
             subidx = context->PDOdesc[Thread_n].n;
             /* extract all bitlengths of SDO's */
             for (subidxloop = 1; subidxloop <= subidx; subidxloop++)

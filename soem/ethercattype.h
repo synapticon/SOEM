@@ -60,8 +60,17 @@ extern "C"
 #define EC_ECATTYPE        0x1000
 /** number of frame buffers per channel (tx, rx1 rx2) */
 #define EC_MAXBUF          16
-/** timeout value in us for tx frame to return to rx */
-#define EC_TIMEOUTRET      20000
+/** timeout value in us for tx frame to return to rx.
+ *
+ * Measured on a host whose NIC occasionally holds a frame back: round trips are
+ * ~20 us but a handful per minute land between 20 and 23 ms, and none in between.
+ * At 20000 every one of those was a lost transfer, which the PDO assign walk in
+ * ethercatcoe.c turns into a process image that is short by a whole PDO. Room
+ * above that spread costs nothing when frames come back on time, and the price
+ * when one truly never returns is a longer wait on the register access that was
+ * waiting for it - not on the cyclic exchange, which passes its own timeout to
+ * ecx_receive_processdata. */
+#define EC_TIMEOUTRET      100000
 /** timeout value in us for safe data transfer, max. triple retry */
 #define EC_TIMEOUTRET3     (EC_TIMEOUTRET * 3)
 /** timeout value in us for return "safe" variant (f.e. wireless) */
